@@ -182,3 +182,52 @@ db.alertas.insertOne({
 ```
 
 Tem que mandar um `Date` de verdade, sem `.toISOString()` nem nenhuma conversão pra texto. Assim cada alerta novo é apagado sozinho 30 dias depois.
+
+---
+
+## A4 — Consulta coberta
+
+Script: `mongo/a4.js` · saída: `mongo/saidas/a4.txt`
+
+```js
+db.movimentacoes.find(
+  { tipo: "inspecao", terminal: "T2" },
+  { _id: 0, container: 1 }
+)
+```
+
+**Índice criado:**
+
+```js
+db.movimentacoes.createIndex({ tipo: 1, terminal: 1, container: 1 })
+```
+
+`tipo` e `terminal` são os dois campos do filtro, ambos de igualdade, e `container` é o único campo que a consulta devolve. Com isso, tudo o que a consulta precisa está dentro do índice.
+
+| | com `_id: 0` | sem `_id: 0` |
+|---|---|---|
+| plano | IXSCAN → PROJECTION_COVERED | IXSCAN → FETCH → PROJECTION_SIMPLE |
+| nReturned | 16.143 | 16.143 |
+| totalKeysExamined | 16.143 | 16.143 |
+| totalDocsExamined | **0** | **16.143** |
+| executionTimeMillis | 23 | 45 |
+
+**Com `_id: 0`** a consulta é coberta. O Mongo acha as chaves de inspecao + T2 no índice e já monta o resultado com o `container` que está guardado na própria chave. Ele nunca precisa abrir o documento, por isso **totalDocsExamined = 0**. O estágio PROJECTION_COVERED mostra justamente isso: a projeção foi feita só com o que tinha no índice.
+
+**Sem `_id: 0`** o `_id` volta a ser devolvido, porque o Mongo sempre traz o `_id` se a gente não tirar. Só que o `_id` não faz parte desse índice. Aí, pra cada uma das 16.143 chaves, ele tem que ir no documento buscar o `_id`. Aparece o **FETCH**, o docsExamined vai de 0 pra 16.143 e a projeção vira PROJECTION_SIMPLE, que é feita em cima do documento inteiro. A busca no índice é a mesma, por isso o keysExamined não mudou. O que mudou foi o trabalho extra de ler cada documento, e o tempo praticamente dobrou.
+
+---
+
+## Índices no fim da Parte A
+
+Saída: `mongo/saidas/auditoria_indices_parteA.txt`
+
+| coleção | índice | pra quê |
+|---|---|---|
+| movimentacoes | `_id_` | padrão do Mongo |
+| movimentacoes | `terminal_1_classe_1_peso_kg_-1_ts_1` | A1, o índice ESR |
+| movimentacoes | `posicao_2dsphere` | A2, sem ele o `$near` nem roda |
+| movimentacoes | `tipo_1_terminal_1_container_1` | A4, consulta coberta |
+| alertas | `registrado_em_1` com TTL de 30 dias | A3 |
+
+O índice de teste da A1 b), o `terminal_1_classe_1_ts_1_peso_kg_-1`, eu apaguei antes de criar o ESR, então não sobrou nenhum índice sem uso.

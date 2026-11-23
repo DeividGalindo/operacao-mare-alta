@@ -1,0 +1,24 @@
+documentos que batem no filtro: 16143
+
+==================== A4 com _id: 0 ====================
+plano               : PROJECTION_COVERED -> IXSCAN
+nReturned           : 16143
+totalDocsExamined   : 0
+totalKeysExamined   : 16143
+executionTimeMillis : 23
+executionStages:
+  PROJECTION_COVERED  nReturned=16143
+    IXSCAN  nReturned=16143  keysExamined=16143
+
+==================== A4 sem _id: 0 ====================
+plano               : PROJECTION_SIMPLE -> FETCH -> IXSCAN
+nReturned           : 16143
+totalDocsExamined   : 16143
+totalKeysExamined   : 16143
+executionTimeMillis : 45
+executionStages:
+  PROJECTION_SIMPLE  nReturned=16143
+    FETCH  nReturned=16143  docsExamined=16143
+      IXSCAN  nReturned=16143  keysExamined=16143
+
+índices: ["_id_","terminal_1_classe_1_peso_kg_-1_ts_1","posicao_2dsphere","tipo_1_terminal_1_container_1"]

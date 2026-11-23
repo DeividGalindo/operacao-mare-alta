@@ -37,3 +37,9 @@ Juntei essas linhas e não mexi em mais nada. Tomei cuidado com isso porque, se 
 **O teste que me convenceu.** Só ver que o campo era string não provava que era esse o motivo. Então coloquei dois alertas com a mesma data, 01/01/2026, um em Date e outro em string. Depois de esperar, o de Date sumiu e o de string ficou. Aí não tem mais dúvida.
 
 **Uma coisa que me confundiu.** O `deletedDocuments` já estava em 8 antes do meu teste, e eu não tinha apagado nada. Acho que são coisas internas do próprio Mongo que também usam TTL. O que importa é que subiu só 1 depois do teste, que foi o alerta em Date.
+
+## A4
+
+**Bateu certinho.** Eu tinha chutado uns 16 mil e deram 16.143. Com `_id: 0` veio PROJECTION_COVERED e 0 documentos examinados. Sem ele, apareceu o FETCH e foram 16.143 documentos.
+
+**O índice da A1 entrou na disputa.** Olhando o JSON do explain, vi que o índice da A1, o `terminal_1_classe_1_peso_kg_-1_ts_1`, apareceu como plano rejeitado. Faz sentido, porque ele começa por `terminal` e o filtro tem `terminal: "T2"`, então dava pra usar ele também. Só que por ele o Mongo teria que passar por todo o T2, de todos os tipos, e ainda abrir os documentos pra conferir o tipo. O índice novo ganhou porque já vai direto em inspecao + T2 e não precisa abrir nada.
