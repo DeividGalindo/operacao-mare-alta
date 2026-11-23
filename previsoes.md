@@ -31,3 +31,16 @@ Contas que fiz antes:
 - SORT em memória: não
 - nReturned: 20
 - tempo: perto de 0 ms
+
+## A2 — Incidente no pátio
+
+O INCIDENTE é -25.4880, -48.5160 no formato do Google Maps, que é lat, lon. No GeoJSON a ordem é **[lon, lat]**, então vou usar `[-48.5160, -25.4880]`.
+
+**Antes do índice**
+- Acho que vai dar **erro**, algo como "unable to find index for $geoNear query". O `$near` precisa de índice geoespacial pra funcionar, não faz COLLSCAN.
+
+**Depois do índice 2dsphere**
+- stage: algo como GEO_NEAR_2DSPHERE com IXSCAN e FETCH por dentro, e LIMIT no topo
+- SORT em memória: **não**, porque o `$near` já devolve ordenado pela distância
+- nReturned: **10**. Os pontos estão espalhados num quadrado de mais ou menos 5 km × 5,5 km, que é 0,05° de lat e de lon, uns 28 km². Um círculo de 300 m tem uns 0,28 km², então cabem uns 400.000 × 0,28 / 28 ≈ **4 mil** pontos dentro do raio. Dá e sobra pra 10.
+- totalKeysExamined e totalDocsExamined: **dezenas até algumas centenas**. Ele começa pelo pedaço mais perto do ponto e vai aumentando, não precisa olhar os 4 mil.
