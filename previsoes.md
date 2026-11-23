@@ -57,3 +57,23 @@ Outras coisas que poderiam ser, caso essa hipótese esteja errada:
 - o índice ter sido criado em outro campo
 
 Espero que um `countDocuments` com `$type: "string"` dê **100 mil** e com `$type: "date"` dê **0**.
+
+## A4 — Consulta coberta
+
+Índice que vou criar: `{ tipo: 1, terminal: 1, container: 1 }`. Os dois campos do filtro são igualdade e o `container` é o único campo que a projeção devolve, então tudo o que a consulta precisa fica dentro do índice.
+
+Conta: são 5 tipos e 5 terminais, então inspecao + T2 deve dar uns 400.000 / 25 = **16 mil** documentos.
+
+**Com `_id: 0`**
+- stage: IXSCAN → PROJECTION_COVERED
+- totalKeysExamined: uns 16 mil
+- totalDocsExamined: **0**
+- SORT em memória: não, a consulta nem pede ordenação
+- nReturned: uns 16 mil
+
+**Sem `_id: 0`**
+- stage: IXSCAN → FETCH → PROJECTION_SIMPLE
+- totalKeysExamined: uns 16 mil, igual
+- totalDocsExamined: uns 16 mil. O `_id` volta por padrão e não está no índice, então ele vai ter que abrir cada documento só pra pegar o `_id`
+- SORT em memória: não
+- nReturned: uns 16 mil
