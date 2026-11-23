@@ -1,0 +1,64 @@
+
+==================== B1 sem índice ====================
+plano               : GROUP -> COLLSCAN
+nReturned           : 5
+totalDocsExamined   : 400000
+totalKeysExamined   : 0
+executionTimeMillis : 779
+executionStages:
+  project  nReturned=5
+    project  nReturned=5
+      group  nReturned=5
+        project  nReturned=49423
+          filter  nReturned=49423
+            scan  nReturned=400000
+estágios do pipeline:
+  [0] $cursor  nReturned=5
+  [1] $sort  nReturned=3
+  [2] $project  nReturned=3
+
+==== resultado ====
+[
+  {
+    total_movimentacoes: 9963,
+    peso_total: 160646064,
+    peso_medio: 16124.26618488407,
+    maior_peso: 30997,
+    terminal: 'T1'
+  },
+  {
+    total_movimentacoes: 9886,
+    peso_total: 159189702,
+    peso_medio: 16102.539146267449,
+    maior_peso: 30987,
+    terminal: 'T2'
+  },
+  {
+    total_movimentacoes: 9859,
+    peso_total: 157937519,
+    peso_medio: 16019.628664164722,
+    maior_peso: 30980,
+    terminal: 'T4'
+  }
+]
+
+==================== B1 com índice {classe, ts, terminal, peso_kg} ====================
+plano               : GROUP -> PROJECTION_COVERED -> IXSCAN
+nReturned           : 5
+totalDocsExamined   : 0
+totalKeysExamined   : 49423
+executionTimeMillis : 48
+executionStages:
+  project  nReturned=5
+    project  nReturned=5
+      group  nReturned=5
+        project  nReturned=49423
+          ixseek  nReturned=49423  keysExamined=49423
+estágios do pipeline:
+  [0] $cursor  nReturned=5
+  [1] $sort  nReturned=3
+  [2] $project  nReturned=3
+
+documentos que passam no $match: 49423
+
+índices: ["_id_","terminal_1_classe_1_peso_kg_-1_ts_1","posicao_2dsphere","tipo_1_terminal_1_container_1","classe_1_ts_1_terminal_1_peso_kg_1"]

@@ -231,3 +231,73 @@ Saída: `mongo/saidas/auditoria_indices_parteA.txt`
 | alertas | `registrado_em_1` com TTL de 30 dias | A3 |
 
 O índice de teste da A1 b), o `terminal_1_classe_1_ts_1_peso_kg_-1`, eu apaguei antes de criar o ESR, então não sobrou nenhum índice sem uso.
+
+---
+
+## B1 — Relatório gerencial
+
+Script: `mongo/b1.js` · saída: `mongo/saidas/b1.txt`
+
+```js
+db.movimentacoes.aggregate([
+  { $match: { classe: "Granel", ts: { $gte: ISODate("2026-06-01T00:00:00Z") } } },
+  { $group: {
+      _id: "$terminal",
+      total_movimentacoes: { $sum: 1 },
+      peso_total: { $sum: "$peso_kg" },
+      peso_medio: { $avg: "$peso_kg" },
+      maior_peso: { $max: "$peso_kg" }
+  } },
+  { $sort: { peso_total: -1 } },
+  { $limit: 3 },
+  { $project: { _id: 0, terminal: "$_id", total_movimentacoes: 1, peso_total: 1, peso_medio: 1, maior_peso: 1 } }
+])
+```
+
+Coloquei o `$match` primeiro pra filtrar antes de agrupar. Também ordenei antes de limitar, senão o top 3 sairia errado. No final o `$project` troca o `_id` pelo campo `terminal`.
+
+**Resultado:**
+
+| terminal | total_movimentacoes | peso_total | peso_medio | maior_peso |
+|---|---|---|---|---|
+| T1 | 9.963 | 160.646.064 | 16.124,27 | 30.997 |
+| T2 | 9.886 | 159.189.702 | 16.102,54 | 30.987 |
+| T4 | 9.859 | 157.937.519 | 16.019,63 | 30.980 |
+
+O T2 deu 9.886 movimentações, que é o mesmo número que bateu no filtro da A1: T2 + Granel + ts >= 01/06. Isso mostra que o filtro está igual nas duas questões.
+
+**Índice criado:**
+
+```js
+db.movimentacoes.createIndex({ classe: 1, ts: 1, terminal: 1, peso_kg: 1 })
+```
+
+`classe` primeiro porque é igualdade e `ts` em seguida porque é range. `terminal` e `peso_kg` ficaram no final porque são os únicos outros campos que o pipeline usa. Assim o `$group` consegue pegar tudo direto do índice.
+
+**Quantos documentos entraram no `$group`.** Rodei `db.movimentacoes.explain("executionStats").aggregate([...])` antes e depois do índice. No Mongo 8 o `$group` foi colocado dentro do próprio plano da consulta, aparecendo como GROUP no plano. Então o número de documentos que entraram nele aparece no estágio logo abaixo do group, na árvore do executionStages:
+
+Sem índice:
+```
+group    nReturned=5
+  project  nReturned=49423
+    filter   nReturned=49423
+      scan     nReturned=400000
+```
+
+Com índice:
+```
+group    nReturned=5
+  project  nReturned=49423
+    ixseek   nReturned=49423  keysExamined=49423
+```
+
+| | sem índice | com índice |
+|---|---|---|
+| plano | COLLSCAN → GROUP | IXSCAN → PROJECTION_COVERED → GROUP |
+| totalDocsExamined | 400.000 | **0** |
+| totalKeysExamined | 0 | 49.423 |
+| documentos que entraram no $group | **49.423** | **49.423** |
+| saída do $group | 5 | 5 |
+| executionTimeMillis | 779 | 48 |
+
+Entraram **49.423 documentos** no `$group` nos dois casos. Conferi com `countDocuments` do mesmo filtro e deu 49.423 também. O resultado é o mesmo, o que muda é o caminho. Sem índice o Mongo leu as 400 mil movimentações e jogou fora umas 350 mil no filtro. Com índice ele foi direto no pedaço Granel + ts >= 01/06 e, como tudo estava no índice, não abriu nenhum documento.

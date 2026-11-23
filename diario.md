@@ -43,3 +43,9 @@ Juntei essas linhas e não mexi em mais nada. Tomei cuidado com isso porque, se 
 **Bateu certinho.** Eu tinha chutado uns 16 mil e deram 16.143. Com `_id: 0` veio PROJECTION_COVERED e 0 documentos examinados. Sem ele, apareceu o FETCH e foram 16.143 documentos.
 
 **O índice da A1 entrou na disputa.** Olhando o JSON do explain, vi que o índice da A1, o `terminal_1_classe_1_peso_kg_-1_ts_1`, apareceu como plano rejeitado. Faz sentido, porque ele começa por `terminal` e o filtro tem `terminal: "T2"`, então dava pra usar ele também. Só que por ele o Mongo teria que passar por todo o T2, de todos os tipos, e ainda abrir os documentos pra conferir o tipo. O índice novo ganhou porque já vai direto em inspecao + T2 e não precisa abrir nada.
+
+## B1
+
+**Bateu, até o coberto.** Eu tinha chutado uns 50 mil no $group e deram 49.423. Com o índice ficou PROJECTION_COVERED com 0 documentos lidos, como eu esperava.
+
+**Me perdi um pouco pra achar o número que entrou no $group.** Eu esperava ver no explain um `stages` com o `$cursor` mostrando os documentos que saíam do $match e depois o `$group`. Mas o `$cursor` mostrou nReturned = 5, que é a saída do group, não a entrada. Olhando o plano, o Mongo 8 colocou o $group dentro do próprio plano da consulta, como um estágio GROUP. Aí tive que descer na árvore do executionStages e pegar o nReturned do estágio logo abaixo do group, que deu 49.423. Pra ter certeza, comparei com um `countDocuments` do mesmo filtro e bateu.
