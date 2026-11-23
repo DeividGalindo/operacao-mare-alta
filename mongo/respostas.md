@@ -55,3 +55,70 @@ No b) a ordem é terminal, classe, **ts**, peso. O Mongo vai direto pra parte da
 No c) a ordem é terminal, classe, **peso**, ts. Depois das duas igualdades a próxima coisa na árvore já é o peso, do maior pro menor. Ou seja, o índice já está na ordem do sort. O Mongo vai descendo do mais pesado pro mais leve e confere o ts direto na chave. Se não passa, pula pra próxima. Quando junta 20 que passam, o LIMIT para tudo. Leu só **43 chaves**, abriu 20 documentos e **não teve SORT**.
 
 O ponto é que o campo de range, que é o ts, tem que ficar **depois** do campo de ordenação. Um range pega vários valores e bagunça a ordem dos campos que vêm depois dele no índice. Por isso a ESR coloca o Range por último.
+
+---
+
+## A2 — Incidente no pátio
+
+Script: `mongo/a2.js` · saída: `mongo/saidas/a2.txt`
+
+O INCIDENTE veio como `-25.4880, -48.5160`, que é o formato do Google Maps: latitude primeiro. O GeoJSON é o contrário, longitude primeiro, então o ponto fica `[-48.5160, -25.4880]`.
+
+```js
+db.movimentacoes.find({
+  posicao: {
+    $near: {
+      $geometry: { type: "Point", coordinates: [-48.5160, -25.4880] },
+      $maxDistance: 300
+    }
+  }
+}).limit(10)
+```
+
+**Antes do índice** deu erro:
+
+```
+unable to find index for $geoNear query
+```
+
+O `$near` precisa calcular distância e devolver em ordem de proximidade, e o Mongo só faz isso com um índice geoespacial. Ele nem tenta varrer a coleção, já recusa a consulta.
+
+**Índice criado:**
+
+```js
+db.movimentacoes.createIndex({ posicao: "2dsphere" })
+```
+
+Usei `2dsphere` porque os pontos estão em GeoJSON, com coordenadas de verdade na Terra, e a distância é em metros.
+
+**Resultado**, já do mais perto pro mais longe:
+
+| # | container | tipo | terminal |
+|---|---|---|---|
+| 1 | CTN30338 | descarga | T4 |
+| 2 | CTN59133 | carga | T2 |
+| 3 | CTN48531 | carga | T3 |
+| 4 | CTN27149 | gate_out | T2 |
+| 5 | CTN49183 | inspecao | T5 |
+| 6 | CTN26829 | carga | T4 |
+| 7 | CTN16260 | descarga | T3 |
+| 8 | CTN57783 | inspecao | T4 |
+| 9 | CTN41368 | inspecao | T3 |
+| 10 | CTN32044 | gate_in | T2 |
+
+**Explain:**
+
+| métrica | valor |
+|---|---|
+| plano | IXSCAN → FETCH → GEO_NEAR_2DSPHERE → LIMIT |
+| nReturned | 10 |
+| totalKeysExamined | 63 |
+| totalDocsExamined | 35 |
+| executionTimeMillis | 1 |
+
+Cada etapa, de baixo pra cima:
+
+- **IXSCAN**: o índice 2dsphere divide a superfície da Terra em células. O Mongo não olha a coleção toda, ele pega só as células que ficam em volta do ponto, começando pelas mais próximas. Leu 63 chaves.
+- **FETCH**: abre os documentos dessas células, 35 no total, pra pegar a coordenada exata e calcular a distância de verdade até o incidente.
+- **GEO_NEAR_2DSPHERE**: é o estágio que organiza a busca em "anéis". Ele procura num anel pequeno em volta do ponto, ordena o que achou pela distância e, se ainda faltar resultado, aumenta o anel. Por isso não aparece SORT: o resultado já sai em ordem de proximidade.
+- **LIMIT**: quando chegou em 10, parou. Mesmo tendo uns 4 mil pontos dentro dos 300 m, ele só precisou mexer em 35 documentos.

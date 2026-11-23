@@ -21,3 +21,9 @@ Juntei essas linhas e não mexi em mais nada. Tomei cuidado com isso porque, se 
 **O c) bateu.** Previ umas 40 chaves e deu 43, com 20 documentos e sem SORT.
 
 **Teste do DATA_CORTE como texto.** Fiquei na dúvida se dava pra escrever a data direto como `"2026-06-01"` no filtro. Testei: com `ts: { $gte: "2026-06-01" }` voltou **0 documentos**, contra 9.886 usando `new Date(...)`. O ts é Date e o Mongo não compara Date com string, porque são tipos diferentes no BSON, então ninguém passa no filtro. Por isso deixei o DATA_CORTE como Date no `comum.js`.
+
+## A2
+
+**Bateu quase tudo.** Deu o erro que eu esperava antes do índice e, depois, o plano veio com GEO_NEAR_2DSPHERE, sem SORT e com 10 resultados. Eu tinha chutado de dezenas a algumas centenas de documentos examinados e foram 35, com 63 chaves.
+
+**Testei a ordem errada das coordenadas.** Fiquei curioso pra ver o que acontecia se eu colasse do jeito que o Google Maps mostra, latitude primeiro. Não dá erro nenhum, simplesmente volta **0 documentos**. Isso é perigoso, porque parece que não tem nada perto do incidente, quando na verdade o ponto foi parar em outro lugar do planeta. Com `[lon, lat]` vieram os 10.

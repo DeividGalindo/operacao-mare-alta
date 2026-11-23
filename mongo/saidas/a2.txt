@@ -1,0 +1,30 @@
+==== antes do índice ====
+ERRO: unable to find index for $geoNear query
+
+==== depois do índice 2dsphere ====
+  CTN30338  descarga  T4  [lon, lat] = [-48.51604284039233,-25.487989832973106]
+  CTN59133  carga  T2  [lon, lat] = [-48.516021681115966,-25.488084159826393]
+  CTN48531  carga  T3  [lon, lat] = [-48.51589196779998,-25.48803435767768]
+  CTN27149  gate_out  T2  [lon, lat] = [-48.515915313123266,-25.488078664056957]
+  CTN49183  inspecao  T5  [lon, lat] = [-48.516007327584084,-25.487888177030253]
+  CTN26829  carga  T4  [lon, lat] = [-48.51593183203833,-25.487884172133636]
+  CTN16260  descarga  T3  [lon, lat] = [-48.515932455232836,-25.48785359649919]
+  CTN57783  inspecao  T4  [lon, lat] = [-48.51605599798961,-25.488157631037758]
+  CTN41368  inspecao  T3  [lon, lat] = [-48.51582519504475,-25.487940135796087]
+  CTN32044  gate_in  T2  [lon, lat] = [-48.51587366313208,-25.487865547079128]
+
+==================== A2 $near com 2dsphere ====================
+plano               : LIMIT -> GEO_NEAR_2DSPHERE -> FETCH -> IXSCAN
+nReturned           : 10
+totalDocsExamined   : 35
+totalKeysExamined   : 63
+executionTimeMillis : 1
+executionStages:
+  LIMIT  nReturned=10
+    GEO_NEAR_2DSPHERE  nReturned=10
+      FETCH  nReturned=35  docsExamined=35
+        IXSCAN  nReturned=35  keysExamined=63
+
+coordenadas na ordem lat, lon: 0 documentos
+
+índices: ["_id_","terminal_1_classe_1_peso_kg_-1_ts_1","posicao_2dsphere"]
