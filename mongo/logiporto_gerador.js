@@ -1,5 +1,4 @@
 // mongosh --file logiporto_gerador.js
-// Código do professor. Só juntei as linhas que vieram quebradas no texto; a lógica é a mesma.
 const RA = 241734162; // <<< RA do aluno (somente dígitos, sem zeros à esquerda)
 if (!RA) throw new Error("Defina o RA");
 

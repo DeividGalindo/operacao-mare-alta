@@ -1,0 +1,45 @@
+índices antes: ["_id_"]
+documentos que batem no filtro: 9886
+
+==================== A1 a) SEM ÍNDICE ====================
+plano               : SORT -> COLLSCAN
+nReturned           : 20
+totalDocsExamined   : 400000
+totalKeysExamined   : 0
+executionTimeMillis : 305
+executionStages:
+  SORT  nReturned=20
+    COLLSCAN  nReturned=9886  docsExamined=400000
+
+==================== A1 b) {terminal:1, classe:1, ts:1, peso_kg:-1} ====================
+plano               : FETCH -> SORT -> IXSCAN
+nReturned           : 20
+totalDocsExamined   : 20
+totalKeysExamined   : 9886
+executionTimeMillis : 19
+executionStages:
+  FETCH  nReturned=20  docsExamined=20
+    SORT  nReturned=20
+      IXSCAN  nReturned=9886  keysExamined=9886
+
+==================== A1 c) ESR {terminal:1, classe:1, peso_kg:-1, ts:1} ====================
+plano               : LIMIT -> FETCH -> IXSCAN
+nReturned           : 20
+totalDocsExamined   : 20
+totalKeysExamined   : 43
+executionTimeMillis : 3
+executionStages:
+  LIMIT  nReturned=20
+    FETCH  nReturned=20  docsExamined=20
+      IXSCAN  nReturned=20  keysExamined=43
+
+top 5 do resultado:
+  CTN13301  peso_kg=30987  ts=2026-06-05T09:52:04.875Z
+  CTN09823  peso_kg=30987  ts=2026-06-16T03:20:58.368Z
+  CTN44477  peso_kg=30984  ts=2026-10-01T16:26:03.394Z
+  CTN07985  peso_kg=30983  ts=2026-06-20T12:41:55.593Z
+  CTN55367  peso_kg=30976  ts=2026-09-30T09:19:17.315Z
+
+filtro com ts >= '2026-06-01' em string: 0 documentos
+
+índices depois: ["_id_","terminal_1_classe_1_peso_kg_-1_ts_1"]

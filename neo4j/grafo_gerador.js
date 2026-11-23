@@ -1,5 +1,4 @@
 // mongosh --nodb --file grafo_gerador.js > grafo.cypher
-// Código do professor. Só juntei as linhas que vieram quebradas no texto; a lógica é a mesma.
 const RA = 241734162; // <<< RA do aluno
 if (!RA) throw new Error("Defina o RA");
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0;
