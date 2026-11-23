@@ -44,3 +44,16 @@ O INCIDENTE é -25.4880, -48.5160 no formato do Google Maps, que é lat, lon. No
 - SORT em memória: **não**, porque o `$near` já devolve ordenado pela distância
 - nReturned: **10**. Os pontos estão espalhados num quadrado de mais ou menos 5 km × 5,5 km, que é 0,05° de lat e de lon, uns 28 km². Um círculo de 300 m tem uns 0,28 km², então cabem uns 400.000 × 0,28 / 28 ≈ **4 mil** pontos dentro do raio. Dá e sobra pra 10.
 - totalKeysExamined e totalDocsExamined: **dezenas até algumas centenas**. Ele começa pelo pedaço mais perto do ponto e vai aumentando, não precisa olhar os 4 mil.
+
+## A3 — O TTL que não apaga
+
+Pelo que eu vi no gerador, o `registrado_em` é criado com `new Date(...).toISOString()`. Esse `toISOString()` transforma a data num **texto**, tipo "2026-03-10T14:22:00.000Z".
+
+**Minha hipótese:** o TTL do Mongo só apaga documentos quando o campo do índice é do tipo **Date**. Como aqui o campo é string, o processo que limpa os documentos vencidos ignora todos eles, e nada nunca expira, não importa quanto tempo passe.
+
+Outras coisas que poderiam ser, caso essa hipótese esteja errada:
+- o `expireAfterSeconds` ter sido colocado com valor errado
+- o processo do TTL ainda não ter rodado, mas ele roda a cada 60 segundos e o enunciado fala em horas, então acho difícil
+- o índice ter sido criado em outro campo
+
+Espero que um `countDocuments` com `$type: "string"` dê **100 mil** e com `$type: "date"` dê **0**.
