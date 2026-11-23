@@ -27,3 +27,13 @@ Juntei essas linhas e não mexi em mais nada. Tomei cuidado com isso porque, se 
 **Bateu quase tudo.** Deu o erro que eu esperava antes do índice e, depois, o plano veio com GEO_NEAR_2DSPHERE, sem SORT e com 10 resultados. Eu tinha chutado de dezenas a algumas centenas de documentos examinados e foram 35, com 63 chaves.
 
 **Testei a ordem errada das coordenadas.** Fiquei curioso pra ver o que acontecia se eu colasse do jeito que o Google Maps mostra, latitude primeiro. Não dá erro nenhum, simplesmente volta **0 documentos**. Isso é perigoso, porque parece que não tem nada perto do incidente, quando na verdade o ponto foi parar em outro lugar do planeta. Com `[lon, lat]` vieram os 10.
+
+## A3
+
+**A hipótese principal estava certa.** Os 100 mil alertas estão com `registrado_em` em string, nenhum em Date.
+
+**Como descartei as outras hipóteses.** O `getIndexes()` mostrou `expireAfterSeconds: 2592000`, que é exatamente 30 dias, então não era valor errado. O índice está no campo `registrado_em` mesmo. Sobre o TTL não ter rodado ainda: olhei o `serverStatus().metrics.ttl` e o `passes` foi de 51 pra 53 em 130 segundos, então ele está rodando sim.
+
+**O teste que me convenceu.** Só ver que o campo era string não provava que era esse o motivo. Então coloquei dois alertas com a mesma data, 01/01/2026, um em Date e outro em string. Depois de esperar, o de Date sumiu e o de string ficou. Aí não tem mais dúvida.
+
+**Uma coisa que me confundiu.** O `deletedDocuments` já estava em 8 antes do meu teste, e eu não tinha apagado nada. Acho que são coisas internas do próprio Mongo que também usam TTL. O que importa é que subiu só 1 depois do teste, que foi o alerta em Date.

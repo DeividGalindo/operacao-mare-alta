@@ -1,0 +1,44 @@
+==== documento de exemplo ====
+{
+  sensor: 'S252',
+  nivel: 'critico',
+  registrado_em: '2026-05-08T19:22:02.796Z'
+}
+
+==== tipo do campo registrado_em ====
+[
+  {
+    _id: 'string',
+    qtd: 100000
+  }
+]
+
+==== índices de alertas ====
+[
+  {
+    v: 2,
+    key: {
+      _id: 1
+    },
+    name: '_id_'
+  },
+  {
+    v: 2,
+    key: {
+      registrado_em: 1
+    },
+    name: 'registrado_em_1',
+    expireAfterSeconds: 2592000
+  }
+]
+
+==== antes de esperar ====
+total de alertas: 100002
+ttl.passes: 51  ttl.deletedDocuments: 8
+
+==== depois de 130 segundos ====
+total de alertas: 100001
+ttl.passes: 53  ttl.deletedDocuments: 9
+TESTE_DATE existe: false
+TESTE_STRING existe: true
+total de alertas no fim: 100000
