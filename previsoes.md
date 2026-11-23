@@ -77,3 +77,24 @@ Conta: são 5 tipos e 5 terminais, então inspecao + T2 deve dar uns 400.000 / 2
 - totalDocsExamined: uns 16 mil. O `_id` volta por padrão e não está no índice, então ele vai ter que abrir cada documento só pra pegar o `_id`
 - SORT em memória: não
 - nReturned: uns 16 mil
+
+## B1 — Relatório gerencial
+
+Conta: Granel é 1/4 das 400 mil, uns 100 mil. Com ts >= 01/06 sobra mais ou menos metade, igual na A1, então devem entrar uns **50 mil** documentos no `$group`.
+
+O pipeline vai ser `$match` → `$group` → `$sort` → `$limit` → `$project`.
+
+**Sem índice pro $match**
+- stage: COLLSCAN. Os índices que já existem não começam por classe, então não servem
+- totalDocsExamined: 400.000
+- totalKeysExamined: 0
+- docs entrando no $group: uns 50 mil
+
+**Com o índice `{ classe: 1, ts: 1, terminal: 1, peso_kg: 1 }`**
+- classe vem primeiro porque é igualdade e ts depois porque é range, igual a ESR. Coloquei terminal e peso_kg no final porque são os únicos outros campos que o pipeline usa
+- stage: IXSCAN. Acho que fica coberto, com PROJECTION_COVERED, porque tudo o que o $group precisa está no índice
+- totalKeysExamined: uns 50 mil
+- totalDocsExamined: **0**, se ficar coberto mesmo
+- docs entrando no $group: uns 50 mil, o mesmo número, porque o índice muda o caminho e não o resultado
+- SORT em memória: tem o `$sort` do pipeline, mas ele ordena só os 5 terminais, então não pesa nada
+- nReturned do pipeline: **3**
