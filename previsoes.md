@@ -123,3 +123,13 @@ Olhando o pipeline antes de rodar, vejo estes problemas:
 - nReturned: 3
 
 Pra provar que o corrigido está certo vou usar o código de autenticidade: LP-241734162-**19995**-**61269**. O gerador calcula esses números pra Granel + T2 no período todo, então a linha do T2 tem que dar mov = 19.995 e kg_total % 99991 = 61.269.
+
+## C2 — Investigação societária e operacional
+
+**Direção das arestas.** No grafo a aresta é `(a)-[:SOCIA_DE {pct}]->(b)`, que quer dizer que a empresa A é sócia da B, ou seja, tem uma parte dela. Vou sair da sancionada seguindo a seta: `(E12)-[:SOCIA_DE*1..3]->(x)`. Assim eu pego as empresas em que a E12 tem participação, direta ou através de outras empresas, até 3 níveis. São essas que a sancionada controla ou influencia e que ela pode usar como fachada pra continuar mexendo com contêiner mesmo sancionada. Se eu fosse no sentido contrário, ia pegar quem é dono da E12, e isso é outra investigação. Sem direção nenhuma ia misturar tudo, por exemplo duas empresas que só têm um sócio em comum.
+
+**Ordem de grandeza.**
+- São 30 empresas e 45 arestas SOCIA_DE, então cada empresa é sócia de 1,5 outras em média. Em 3 níveis a E12 deve alcançar umas **3 a 7 empresas**, tirando as repetidas.
+- Cada empresa tem uns 3 contêineres, 90 / 30, e cada contêiner tem 2 passagens. A E12 tem pelo menos os K0, K1 e K2, então umas 6 passagens.
+- Uma passagem de outra empresa só bate se cair no mesmo terminal **e** no mesmo dia. São 5 terminais × 30 dias = 150 combinações, então a chance é de uns 6 / 150 ≈ 4% por passagem.
+- Com umas 5 empresas × 6 passagens = 30 passagens × 4%, espero **de 0 a 5 linhas**, mais provável 1 ou 2.
