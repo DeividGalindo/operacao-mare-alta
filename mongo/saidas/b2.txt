@@ -1,0 +1,73 @@
+==== a) pipeline original ====
+[
+  {
+    _id: {
+      terminal: 'T2',
+      classe: 'Granel'
+    },
+    kg_total: 0,
+    mov: 19995
+  }
+]
+
+==== c) pipeline corrigido ====
+[
+  {
+    kg_total: 321888856,
+    mov: 20074,
+    terminal: 'T1'
+  },
+  {
+    kg_total: 321083779,
+    mov: 20016,
+    terminal: 'T4'
+  },
+  {
+    kg_total: 320932388,
+    mov: 19995,
+    terminal: 'T2'
+  }
+]
+
+==== conferência: todos os terminais de Granel, sem $limit ====
+  T1  kg_total=321888856  mov=20074
+  T4  kg_total=321083779  mov=20016
+  T2  kg_total=320932388  mov=19995
+  T5  kg_total=319125570  mov=19836
+  T3  kg_total=318200134  mov=19946
+T2: mov=19995  kg_total % 99991 = 61269
+código de autenticidade: LP-241734162-19995-61269
+
+==================== B2 original ====================
+plano               : GROUP -> COLLSCAN
+nReturned           : 20
+totalDocsExamined   : 400000
+totalKeysExamined   : 0
+executionTimeMillis : 213
+executionStages:
+  project  nReturned=20
+    project  nReturned=20
+      group  nReturned=20
+        scan  nReturned=400000
+estágios do pipeline:
+  [0] $cursor  nReturned=3
+  [1] $limit  nReturned=3
+  [2] $match  nReturned=2
+  [3] $sort  nReturned=2
+
+==================== B2 corrigido ====================
+plano               : GROUP -> PROJECTION_COVERED -> IXSCAN
+nReturned           : 5
+totalDocsExamined   : 0
+totalKeysExamined   : 99867
+executionTimeMillis : 80
+executionStages:
+  project  nReturned=5
+    project  nReturned=5
+      group  nReturned=5
+        project  nReturned=99867
+          ixseek  nReturned=99867  keysExamined=99867
+estágios do pipeline:
+  [0] $cursor  nReturned=5
+  [1] $sort  nReturned=3
+  [2] $project  nReturned=3

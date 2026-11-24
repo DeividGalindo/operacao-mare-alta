@@ -301,3 +301,96 @@ group    nReturned=5
 | executionTimeMillis | 779 | 48 |
 
 Entraram **49.423 documentos** no `$group` nos dois casos. Conferi com `countDocuments` do mesmo filtro e deu 49.423 também. O resultado é o mesmo, o que muda é o caminho. Sem índice o Mongo leu as 400 mil movimentações e jogou fora umas 350 mil no filtro. Com índice ele foi direto no pedaço Granel + ts >= 01/06 e, como tudo estava no índice, não abriu nenhum documento.
+
+---
+
+## B2 — Debug arquitetural
+
+Script: `mongo/b2.js` · saída: `mongo/saidas/b2.txt`
+
+### a) Saída do pipeline original
+
+Rodei exatamente como estava, só trocando CLASSE_ALVO por "Granel":
+
+```
+[
+  { _id: { terminal: 'T2', classe: 'Granel' }, kg_total: 0, mov: 19995 }
+]
+```
+
+Veio um documento só, com `kg_total: 0`. O certo seriam 3 terminais com o peso somado.
+
+Detalhe: quando rodei o mesmo pipeline pelo explain, o `$match` do final devolveu **2** documentos em vez de 1. O resultado muda de uma execução pra outra, porque o `$limit: 3` pega os 3 primeiros grupos que saem do `$group`, e essa ordem não é garantida.
+
+### b) Defeitos
+
+| # | defeito | tipo | por quê |
+|---|---|---|---|
+| 1 | `$sum: "peso_kg"` sem o `$` | **lógica** | Sem o `$` o Mongo entende como o texto "peso_kg" e não como o campo. O `$sum` ignora o que não é número, então soma 0. Por isso o `kg_total` veio 0. |
+| 2 | `$project: { terminal: 1, classe: 1 }` no começo | **lógica** | Esse `$project` deixa só `_id`, terminal e classe e descarta o `peso_kg`. Mesmo arrumando o `$`, o campo não existiria mais quando chegasse no `$group`, e a soma continuaria 0. |
+| 3 | `$limit: 3` antes do `$sort` | **lógica** | Ele corta em 3 grupos quaisquer, na ordem em que saíram do `$group`, e só depois ordena esses 3. Não é o top 3, e por isso o resultado muda a cada execução. |
+| 4 | `$match` da classe no final | **lógica e desempenho** | Desempenho: sem filtro no começo o Mongo faz COLLSCAN nas 400 mil e agrupa as 4 classes, gerando 20 grupos, sendo que só 5 interessam. Também não consegue usar índice, porque o filtro não está no início. Lógica: como vem depois do `$limit`, ele filtra só aqueles 3 grupos aleatórios e pode sobrar 0, 1, 2 ou 3. |
+| 5 | `_id` composto por terminal e classe | **desempenho** | Se a classe for filtrada antes, agrupar por ela não serve pra nada. Gera 4 vezes mais grupos na memória e deixa a saída mais confusa. |
+
+### c) Pipeline corrigido
+
+```js
+db.movimentacoes.aggregate([
+  { $match: { classe: "Granel" } },
+  { $group: { _id: "$terminal", kg_total: { $sum: "$peso_kg" }, mov: { $sum: 1 } } },
+  { $sort: { kg_total: -1 } },
+  { $limit: 3 },
+  { $project: { _id: 0, terminal: "$_id", kg_total: 1, mov: 1 } }
+])
+```
+
+Resultado:
+
+| terminal | kg_total | mov |
+|---|---|---|
+| T1 | 321.888.856 | 20.074 |
+| T4 | 321.083.779 | 20.016 |
+| T2 | 320.932.388 | 19.995 |
+
+**Prova de que está certo.** Rodei o mesmo pipeline sem o `$limit` pra ver todos os terminais:
+
+```
+T1  kg_total=321888856  mov=20074
+T4  kg_total=321083779  mov=20016
+T2  kg_total=320932388  mov=19995
+T5  kg_total=319125570  mov=19836
+T3  kg_total=318200134  mov=19946
+```
+
+O código de autenticidade é `LP-241734162-19995-61269`, e o gerador calcula ele com Granel + T2 no período todo. No corrigido, o T2 deu **mov = 19.995** e **320.932.388 % 99991 = 61.269**. Os dois números batem com o código, então a soma e a contagem estão certas. E como os 5 estão em ordem decrescente, o top 3 é T1, T4 e T2.
+
+Comparando o desempenho:
+
+| | original | corrigido |
+|---|---|---|
+| plano | COLLSCAN → GROUP | IXSCAN → PROJECTION_COVERED → GROUP |
+| totalDocsExamined | 400.000 | **0** |
+| totalKeysExamined | 0 | 99.867 |
+| grupos criados | 20 | 5 |
+| executionTimeMillis | 213 | 80 |
+
+### d) Impacto da refatoração
+
+No original o Mongo lia as 400 mil movimentações do disco, montava 20 grupos com todas as classes e só no final jogava fora o que não era Granel. A CPU fazia o trabalho de 4 classes pra aproveitar 1, e a memória do `$group` guardava acumuladores de grupos que nem iam aparecer. Com o `$match` como primeiro estágio, o Mongo consegue usar o índice `{ classe, ts, terminal, peso_kg }` que eu criei na B1, já que ele começa por classe. Assim ele vai direto nas 99.867 chaves de Granel em vez de ler a coleção inteira. Como `terminal` e `peso_kg` também estão no índice, a consulta ficou coberta e não precisou abrir nenhum documento. Com isso caem a leitura de disco, o uso de cache e o tempo de CPU. O `$group` passa a guardar só 5 grupos, bem longe do limite de 100 MB por estágio. E o `$sort` + `$limit` no final ordenam só 5 linhas, o que não custa praticamente nada. É o "filtrar cedo" da aula 7: cada estágio trabalha com o mínimo possível de documentos.
+
+---
+
+## Índices no fim das Partes A e B
+
+Rodei `db.movimentacoes.getIndexes()` no final. A saída está em `mongo/saidas/auditoria_indices_final.txt`.
+
+| coleção | índice | usado em |
+|---|---|---|
+| movimentacoes | `_id_` | padrão do Mongo |
+| movimentacoes | `terminal_1_classe_1_peso_kg_-1_ts_1` | A1 |
+| movimentacoes | `posicao_2dsphere` | A2 |
+| movimentacoes | `tipo_1_terminal_1_container_1` | A4 |
+| movimentacoes | `classe_1_ts_1_terminal_1_peso_kg_1` | B1 e B2 |
+| alertas | `registrado_em_1` com TTL de 30 dias | A3 |
+
+Cada índice é usado por pelo menos uma questão, e não sobrou nenhum índice de teste. O índice da B1 serviu também pra B2, porque começa por `classe`, então não precisei criar outro.

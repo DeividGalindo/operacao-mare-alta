@@ -49,3 +49,11 @@ Juntei essas linhas e não mexi em mais nada. Tomei cuidado com isso porque, se 
 **Bateu, até o coberto.** Eu tinha chutado uns 50 mil no $group e deram 49.423. Com o índice ficou PROJECTION_COVERED com 0 documentos lidos, como eu esperava.
 
 **Me perdi um pouco pra achar o número que entrou no $group.** Eu esperava ver no explain um `stages` com o `$cursor` mostrando os documentos que saíam do $match e depois o `$group`. Mas o `$cursor` mostrou nReturned = 5, que é a saída do group, não a entrada. Olhando o plano, o Mongo 8 colocou o $group dentro do próprio plano da consulta, como um estágio GROUP. Aí tive que descer na árvore do executionStages e pegar o nReturned do estágio logo abaixo do group, que deu 49.423. Pra ter certeza, comparei com um `countDocuments` do mesmo filtro e bateu.
+
+## B2
+
+**A previsão da saída bateu, mas com uma surpresa.** Eu tinha chutado `kg_total` 0 e 0 ou 1 documento. Veio 1 documento, o T2 Granel, com kg_total 0. Só que, quando rodei o mesmo pipeline pelo explain, o `$match` do final devolveu **2** documentos. Primeiro achei que tinha errado alguma coisa no script, mas o pipeline era o mesmo. O problema é o `$limit` antes do `$sort`: ele pega os 3 primeiros grupos que saírem do `$group`, e essa ordem não é fixa. Ou seja, o bug não só dá o resultado errado, ele dá um resultado diferente cada vez que roda.
+
+**O otimizador mexeu na ordem.** No explain do original, os estágios apareceram como `$limit` → `$match` → `$sort`, e não `$limit` → `$sort` → `$match` como está no código. O Mongo passou o `$match` pra antes do `$sort`, porque filtrar antes de ordenar dá o mesmo resultado. Mas ele não pode passar o `$match` pra antes do `$limit`, porque aí mudaria o resultado. Por isso o otimizador não salva esse pipeline: o erro de lógica continua lá.
+
+**A prova com o código de autenticidade funcionou.** Eu não tinha outro jeito fácil de saber se a soma estava certa, então usei o próprio código: o T2 deu 19.995 movimentações e o resto da divisão do peso total por 99991 deu 61.269, exatamente os números do código.
