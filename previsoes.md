@@ -98,3 +98,28 @@ O pipeline vai ser `$match` → `$group` → `$sort` → `$limit` → `$project`
 - docs entrando no $group: uns 50 mil, o mesmo número, porque o índice muda o caminho e não o resultado
 - SORT em memória: tem o `$sort` do pipeline, mas ele ordena só os 5 terminais, então não pesa nada
 - nReturned do pipeline: **3**
+
+## B2 — Debug arquitetural
+
+Olhando o pipeline antes de rodar, vejo estes problemas:
+1. `$sum: "peso_kg"` está sem o `$`, então é um texto e não o campo. Acho que vai somar 0
+2. o `$project` do começo só deixa terminal e classe, então o peso some antes do $group
+3. o `$limit: 3` vem antes do `$sort`, então pega 3 grupos quaisquer e não os 3 maiores
+4. o `$match` da classe está no final, então agrupa tudo das 4 classes e não usa índice nenhum
+5. agrupa por terminal e classe juntos, o que dá 20 grupos em vez de 5
+
+**a) saída do original:** acho que o `kg_total` vai dar **0** em tudo. O $group gera 20 grupos, o $limit pega 3 quaisquer e o $match só deixa os que forem Granel. A chance é de sair **0 ou 1 documento**, no máximo 3.
+
+**Plano do original**
+- stage: COLLSCAN, sem filtro nenhum no começo
+- totalDocsExamined: 400.000
+- totalKeysExamined: 0
+- SORT: tem o `$sort`, mas em cima de só 3 grupos
+
+**Plano do corrigido**, com $match primeiro, $sum com `$`, $sort antes do $limit e agrupando só por terminal
+- stage: IXSCAN usando o índice da B1, porque ele começa por classe. Deve ficar coberto também
+- totalKeysExamined: uns **100 mil**, todo o Granel do ano
+- totalDocsExamined: 0
+- nReturned: 3
+
+Pra provar que o corrigido está certo vou usar o código de autenticidade: LP-241734162-**19995**-**61269**. O gerador calcula esses números pra Granel + T2 no período todo, então a linha do T2 tem que dar mov = 19.995 e kg_total % 99991 = 61.269.
