@@ -1,0 +1,19 @@
+t.nome, count(k)
+"T1", 8
+"T2", 11
+"T3", 8
+"T4", 11
+"T5", 2
+container, terminal, passagens
+"K58", "T1", 2
+"K73", "T1", 2
+"K7", "T2", 2
+"K84", "T2", 2
+"K51", "T3", 2
+"K38", "T4", 2
+terminal, original, distintos
+"T1", 8, 6
+"T2", 11, 9
+"T3", 8, 7
+"T4", 11, 10
+"T5", 2, 2

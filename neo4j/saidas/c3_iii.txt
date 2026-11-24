@@ -1,0 +1,14 @@
+nos_com_id_BASE_DA_PILHA
+0
+setas_saindo_da_K48
+0
+setas_chegando_na_K48
+1
+em_cima, embaixo
+"K49", "K48"
+"K50", "K49"
+"K51", "K50"
+preso_acima_da_base
+"K49"
+"K50"
+"K51"

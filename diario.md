@@ -77,3 +77,15 @@ Refazendo a conta com esses números, 14 empresas com umas 6 passagens cada dá 
 **Uma consulta que não voltou nada.** A consulta "chegando na sancionada" não imprimiu nenhuma linha, nem o 0. Fiquei sem entender, até ver que, se o MATCH não acha nada, o RETURN não roda, então nem o count aparece. Pra deixar isso provado, fiz uma consulta separada contando as setas que chegam na E12, e deu 0.
 
 **O DISTINCT fez diferença de verdade.** Na conferência apareceu o K64 da Empresa 1 duas vezes no T3 em 17/10, uma por causa do K0 e outra por causa do K51, que são dois contêineres da E12 que passaram lá no mesmo dia. No resultado final ele aparece uma vez só por causa do `RETURN DISTINCT`.
+
+## C3
+
+**No (i) descobri que a aresta já existia.** Antes de rodar o CREATE errado, contei as arestas E1 → E2 só pra ter o "antes", e deu 1. Fui no `grafo.cypher` e vi que o gerador já tinha criado a E1 sócia da E2 com pct 14. Isso mudou a correção. Se eu fizesse `MERGE (a)-[:SOCIA_DE {pct:30}]->(b)`, o MERGE ia procurar a aresta com pct 30 junto, não ia achar, porque a que existe tem 14, e ia criar outra aresta. Por isso fiz `MERGE (a)-[r:SOCIA_DE]->(b) SET r.pct = 30`, que acha a aresta que já existe e só atualiza o valor.
+
+**Pra apagar os duplicados do (i)** eu precisava separar os nós falsos dos verdadeiros, já que os dois têm o mesmo cnpj. Reparei que o CREATE só colocou o cnpj, sem nome, então apaguei os Empresa com nome nulo. Depois de apagar o total voltou pra 30 empresas, então eram só aqueles 2 mesmo.
+
+**No (ii) achei que ia travar.** A prova avisava que podia travar o Neo4j, então rodei com LIMIT 20 e um timeout de 30 segundos. Voltou em uns 5 segundos, porque o LIMIT faz ele parar quando junta 20. Mas já dava pra ver empresas repetidas nas 20 linhas. Não rodei o original sem limite. Pra mostrar a explosão, fui medindo a quantidade de caminhos com 2, 4, 6 e 8 saltos, e ela multiplica por umas 7 vezes a cada 2 saltos.
+
+**O (iii) tinha dois erros, não um.** Primeiro achei que era só trocar o 'BASE_DA_PILHA' pelo K48. Troquei e continuou vazio. Aí fui ver as setas: a K48 tem 0 saindo e 1 chegando. A seta vai de quem está em cima pra quem está embaixo, então tinha que inverter.
+
+**No (iv)** achei curioso que o K51 aparece entre os que passaram duas vezes no mesmo terminal, e ele também é um contêiner da E12 e o topo da pilha da K48.

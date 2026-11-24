@@ -1,0 +1,19 @@
+ate_saltos, caminhos
+2, 11
+ate_saltos, caminhos
+4, 134
+ate_saltos, caminhos
+6, 1093
+ate_saltos, caminhos
+8, 7598
+empresa, vezes
+"Empresa 15", 13
+"Empresa 9", 9
+"Empresa 14", 9
+"Empresa 13", 8
+"Empresa 27", 8
+"Empresa 3", 8
+"Empresa 16", 7
+"Empresa 22", 7
+"Empresa 19", 7
+"Empresa 25", 6
