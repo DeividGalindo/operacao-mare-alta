@@ -57,3 +57,23 @@ Juntei essas linhas e não mexi em mais nada. Tomei cuidado com isso porque, se 
 **O otimizador mexeu na ordem.** No explain do original, os estágios apareceram como `$limit` → `$match` → `$sort`, e não `$limit` → `$sort` → `$match` como está no código. O Mongo passou o `$match` pra antes do `$sort`, porque filtrar antes de ordenar dá o mesmo resultado. Mas ele não pode passar o `$match` pra antes do `$limit`, porque aí mudaria o resultado. Por isso o otimizador não salva esse pipeline: o erro de lógica continua lá.
 
 **A prova com o código de autenticidade funcionou.** Eu não tinha outro jeito fácil de saber se a soma estava certa, então usei o próprio código: o T2 deu 19.995 movimentações e o resto da divisão do peso total por 99991 deu 61.269, exatamente os números do código.
+
+## C1
+
+**A E12 não tem nenhum sócio.** Quando fui pegar o subgrafo real, pesquisei a SOCIA_DE nos dois sentidos, porque não sabia se "sócios diretos" ia dar seta saindo ou chegando. Só veio seta saindo: a E12 tem 68% da E10 e 84% da E9, e ninguém tem parte da E12. Coloquei isso no diagrama.
+
+**Mais contêineres do que eu achava.** Pensei que a E12 teria só os 3 que o gerador força, K0, K1 e K2, mais um ou outro. Mas ela tem 10. O gerador sorteia o dono de todos os 90 e alguns caíram nela também.
+
+## C2
+
+**Errei a ordem de grandeza.** Eu tinha previsto de 0 a 5 linhas e vieram **10**. Errei em duas contas:
+- achei que a E12 ia alcançar de 3 a 7 empresas em 3 níveis, e foram **14**. Eu calculei como se cada empresa tivesse só 1,5 saída, mas a E12 já começa com 2, e no caminho estão a E9 e a E14, que são sócias de 4 empresas cada
+- achei que a E12 teria umas 6 passagens, e são **20**, porque ela tem 10 contêineres e não 3
+
+Refazendo a conta com esses números, 14 empresas com umas 6 passagens cada dá umas 84 passagens. Cada uma tem chance de umas 20 / 150 de bater com alguma da E12, o que dá uns 11. Bem perto dos 10 que vieram.
+
+**A direção eu mantive.** Ela saiu como eu tinha pensado. Testei os outros dois sentidos só pra comparar: contra a seta voltou nada, porque ninguém é sócio da E12, e sem direção voltaram 23 empresas.
+
+**Uma consulta que não voltou nada.** A consulta "chegando na sancionada" não imprimiu nenhuma linha, nem o 0. Fiquei sem entender, até ver que, se o MATCH não acha nada, o RETURN não roda, então nem o count aparece. Pra deixar isso provado, fiz uma consulta separada contando as setas que chegam na E12, e deu 0.
+
+**O DISTINCT fez diferença de verdade.** Na conferência apareceu o K64 da Empresa 1 duas vezes no T3 em 17/10, uma por causa do K0 e outra por causa do K51, que são dois contêineres da E12 que passaram lá no mesmo dia. No resultado final ele aparece uma vez só por causa do `RETURN DISTINCT`.

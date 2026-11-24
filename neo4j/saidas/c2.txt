@@ -1,0 +1,15 @@
+empresa_investigada, container, terminal, data
+"Empresa 14", "K43", "T3", "2026-10-02"
+"Empresa 8", "K65", "T1", "2026-10-05"
+"Empresa 9", "K73", "T1", "2026-10-05"
+"Empresa 1", "K27", "T1", "2026-10-06"
+"Empresa 17", "K81", "T4", "2026-10-12"
+"Empresa 14", "K19", "T2", "2026-10-13"
+"Empresa 25", "K70", "T4", "2026-10-16"
+"Empresa 1", "K64", "T3", "2026-10-17"
+"Empresa 8", "K65", "T3", "2026-10-20"
+"Empresa 9", "K14", "T3", "2026-10-22"
+sentido, empresas, quais
+"saindo da sancionada", 14, ["E10", "E9", "E11", "E15", "E23", "E25", "E13", "E14", "E18", "E8", "E17", "E16", "E5", "E1"]
+sentido, empresas, quais
+"sem direção", 23, ["E10", "E9", "E3", "E23", "E25", "E14", "E13", "E1", "E11", "E15", "E2", "E4", "E19", "E26", "E16", "E18", "E8", "E21", "E6", "E5", "E27", "E17", "E7"]

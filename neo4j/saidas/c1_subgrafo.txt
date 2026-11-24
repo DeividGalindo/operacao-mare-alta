@@ -1,0 +1,14 @@
+socia, participada, pct
+"E12", "E10", 68
+"E12", "E9", 84
+empresa, container, classe
+"E12", "K0", "Granel"
+"E12", "K1", "Perigoso"
+"E12", "K2", "Granel"
+"E12", "K34", "Granel"
+"E12", "K36", "Geral"
+"E12", "K44", "Granel"
+"E12", "K51", "Perigoso"
+"E12", "K58", "Perigoso"
+"E12", "K61", "Geral"
+"E12", "K87", "Refrigerado"
